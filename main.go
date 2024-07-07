@@ -6,18 +6,13 @@ import (
 	"log"
 	"os"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 func main() {
-    err := godotenv.Load()
-    if err != nil {
-        log.Fatal("Error loading .env file")
-    }
-
     dsn := os.Getenv("MYSQL_DSN")
     if dsn == "" {
         log.Fatal("MYSQL_DSN environment variable not set")
@@ -25,12 +20,21 @@ func main() {
 
     db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
     if err != nil {
-        panic("failed to connect to database")
+        panic("failed to connect database")
     }
 
     db.AutoMigrate(&models.User{}, &models.Friend{})
 
-    r := gin.Default()
+   r := gin.Default()
+
+   // Apply CORS middleware
+    r.Use(cors.New(cors.Config{
+        AllowOrigins:     []string{"http://localhost:3000"},
+        AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+        AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+        ExposeHeaders:    []string{"Content-Length"},
+        AllowCredentials: true,
+    }))
 
     r.POST("/friend-request", controllers.CreateFriendRequest(db))
     r.POST("/friend-request/respond", controllers.RespondFriendRequest(db))
